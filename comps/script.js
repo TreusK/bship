@@ -13,6 +13,7 @@ function Ship(len) {
         }
     }
 
+    //Function to check if a ship is or isn't Sunk
     function isNotSunk() {
         return arr.includes('o');
     }
@@ -60,19 +61,42 @@ function Gameboard() {
         }
     }
 
+    //Function to receive an attack and mark the corresponding ship object
+    function receiveAttack(x, y) {
+        let index = +[y,x].join('');
+        //if it's empty, it's a Miss
+        if(board[index] == '') {
+            board[index] = 'm';
+        //else, if it has something, but that something isn't a Miss or a Hit that means it's an (un)hit ship
+        } else if(board[index] != 'm' && board[index] != 'h') {
+            let identifier = board[index][0];
+            let shipIndex = board[index][1];
+            let ship = whichShip(identifier);
+            ship.hit(shipIndex);
+            board[index] = 'h';
+        }
+    }
+
     //Function to know which ship to "place" in the arr
     function placeShip(identifier, x, y) {
         let ship = whichShip(identifier);
         placeInCoord(ship, identifier, x, y); 
     }
 
-    return {board, shipsObj, placeShip};
+    //Function to check if all our ships have been sunk
+    function areAllShipsSunk() {
+        let s1 = carrier.isNotSunk();
+        let s2 = battleship.isNotSunk();
+        let s3 = destroyer.isNotSunk();
+        let s4 = submarine.isNotSunk();
+        let s5 = patrol.isNotSunk();
+        return (!s1 && !s2 && !s3 && !s4 && !s5);
+    }
+
+    return {board, shipsObj, placeShip, receiveAttack, areAllShipsSunk};
 }
 
 let p1 = Gameboard();
-console.log([...p1.board]);
+let p2 = Gameboard();
 
-p1.placeShip('B', 0, 3)
-p1.placeShip('D', 0, 0)
 
-console.log([...p1.board]);
