@@ -1,5 +1,11 @@
 'use strict';
 
+//General DOM grabbin
+let startBtn = document.getElementById('startBtn');
+let P2Board = document.getElementById('P2');
+let dragBoats = document.getElementById('dragBoats');
+
+
 //Factory to construct ship objects based on their length
 function Ship(len) {
     let arr = [];
@@ -90,13 +96,149 @@ function Gameboard() {
         let s3 = destroyer.isNotSunk();
         let s4 = submarine.isNotSunk();
         let s5 = patrol.isNotSunk();
-        return (!s1 && !s2 && !s3 && !s4 && !s5);
+        //Temporarily make winning check just the patrol for ease of testing
+        return /*(!s1 && !s2 && !s3 && !s4 && */(!s5);
     }
 
     return {board, shipsObj, placeShip, receiveAttack, areAllShipsSunk};
 }
 
-let p1 = Gameboard();
-let p2 = Gameboard();
+//Factory for players
+function Player(name) {
+    let gameboard = Gameboard();
+    let publicName;
+
+    function attack(enemy, x, y) {
+        enemy.gameboard.receiveAttack(x, y);
+        Loop.render(enemy.name)
+    }
+
+    return {name, publicName, gameboard, attack};
+}
+
+let P1 = Player('P1');
+let P2 = Player('P2');
+
+let tempVar = 'Treus';
+P1.publicName = tempVar;
+P2.publicName = 'CPU';
+
+
+//Module for DOM manipulation
+let Loop = (function () {
+    let turn = true;
+    let boardNotClickable = true;
+
+    //DOM grabbin
+    let P1Cells = document.getElementsByClassName('cellP1');
+    let P2Cells = document.getElementsByClassName('cellP2');
+
+    ///DOM events
+    //Add events on click to each cell, and a unique class based on their "index" and player
+    for(let i=0; i<100; i++) {
+        P1Cells[i].addEventListener('click', clickedCell);
+        P1Cells[i].classList.add('P1-'+i);
+        P2Cells[i].addEventListener('click', clickedCell);
+        P2Cells[i].classList.add('P2-'+i);
+    }
+    //Start button event
+    startBtn.addEventListener('click', function() {
+        P2Board.style.display = 'grid';
+        dragBoats.style.display = 'none';
+        boardNotClickable = false;
+    })
+    
+
+    //Winner function
+    function winner(player) {
+        console.log('WINNER IS ' + player.publicName + '!!!');
+        //Do winner stuff here like reseting the boards and shit
+    }
+
+    //Check for a winner every turn
+    function checkWinner(player, enemy) {
+        if(enemy.gameboard.areAllShipsSunk()) {
+            winner(player)
+        }
+    }
+
+    ///Event function on cell click
+    function clickedCell(e) {
+        if(boardNotClickable) {return;};
+        let identifier = e.target.classList[1];
+        //Take the clicked cell class to know both the player board clicked and the cell index
+        let playerIdent = identifier.slice(0, 2);
+        let cellIdent = identifier.slice(3);
+
+        let players = whichPlayer();
+        //If the player clicks its own board, nothing happens
+        if(players[0].name == playerIdent) {return;}
+
+        let cellX;
+        let cellY;
+        if(cellIdent.length == 1) {
+            cellX = cellIdent[0];
+            cellY = 0;
+        } else {
+            cellX = cellIdent[1];
+            cellY = cellIdent[0];
+        }
+
+        //If the clicked cell has been Hit or Missed before, do nothing
+        let testIndex = +[cellY,cellX].join('');
+        if(players[1].gameboard.board[testIndex] == 'h' || players[1].gameboard.board[testIndex] == 'm') {return;}
+        players[0].attack(players[1], cellX, cellY);
+
+        checkWinner(players[0], players[1]);
+        turn = !turn;
+    }
+
+    //Function to identify current player and enemy
+    function whichPlayer() {
+        return (turn) 
+            ? [P1, P2] 
+            : [P2, P1];
+    }
+
+    //Function to block
+
+    //Function to render the player board based on a identifier string
+    function render(playerString) {
+        if(playerString == 'P1') {
+            for(let i=0; i<100; i++) {
+                 P1Cells[i].innerHTML = P1.gameboard.board[i];
+            }
+        } else if(playerString == 'P2') {
+            for(let i=0; i<100; i++) {
+                    P2Cells[i].innerHTML = P2.gameboard.board[i];
+            }
+        } 
+    }  
+
+    return {render}
+})();
+
+
+Loop.render(P1.name);
+Loop.render(P2.name);
+
+//Use "transform: rotate(90deg);" to turn, and "transform: rotate(0deg);" to reset the boards
+
+
+////Checkpoints
+///Posicionar las naves de p1 a mano
+///Idem las de p2, pero random
+///No dejar q dos naves se toquen al posicionarlas
+///No dejar q toquen el borde del board al posicionarlas
+///Como se representa el contenido del board en el html (h, m, vacio, ship)
+///Checkear q las naves no se repitan en el board al posicionarlas
+
+
+///Remove temp win test of just patrol boat
+
+
+
+
+
 
 

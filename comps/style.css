@@ -1,0 +1,59 @@
+body {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+header {
+    height: 200px;
+    background-color: aquamarine;
+}
+
+#P1 {
+    display: grid;
+    grid-template-columns: repeat(10, 30px);
+    grid-template-rows: repeat(10, 30px);
+    border: solid 2px black;
+    width: 300px;
+}
+
+#P1 div {
+    border: solid 1px black;
+}
+
+#P2 {
+    display: none;
+    grid-template-columns: repeat(10, 30px);
+    grid-template-rows: repeat(10, 30px);
+    border: solid 2px black;
+    width: 300px;
+}
+
+#P2 div {
+    border: solid 1px black;
+}
+
+#dragBoats {
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+}
+
+#dragBoats .boats {
+    border: solid 2px black;
+    background: grey; 
+    height: 26px;
+}
+
+#dragBoats .carrier {width: 146px;}
+#dragBoats .battleship {width: 116px;}
+#dragBoats .destroyer {width: 86px;}
+#dragBoats .submarine {width: 86px;}
+#dragBoats .patrol {width: 56px;}
+
+#boardsContainer {
+    display: flex;
+    width: 700px;
+    justify-content: space-around;
+}
