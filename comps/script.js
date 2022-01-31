@@ -4,6 +4,13 @@
 let startBtn = document.getElementById('startBtn');
 let P2Board = document.getElementById('P2');
 let dragBoats = document.getElementById('dragBoats');
+let boats = document.querySelectorAll('.boats');
+
+for(let elem of boats) {
+    elem.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', e.target.classList[2])
+    })
+}
 
 
 //Factory to construct ship objects based on their length
@@ -26,6 +33,8 @@ function Ship(len) {
 
     return {len, arr, hit, isNotSunk}
 }
+
+
 
 //Factory for the gameboards
 function Gameboard() {
@@ -103,6 +112,8 @@ function Gameboard() {
     return {board, shipsObj, placeShip, receiveAttack, areAllShipsSunk};
 }
 
+
+
 //Factory for players
 function Player(name) {
     let gameboard = Gameboard();
@@ -124,7 +135,7 @@ P1.publicName = tempVar;
 P2.publicName = 'CPU';
 
 
-//Module for DOM manipulation
+//Module for DOM manipulation and lotsa stuff
 let Loop = (function () {
     let turn = true;
     let boardNotClickable = true;
@@ -138,6 +149,21 @@ let Loop = (function () {
     for(let i=0; i<100; i++) {
         P1Cells[i].addEventListener('click', clickedCell);
         P1Cells[i].classList.add('P1-'+i);
+        P1Cells[i].addEventListener('dragover', e => e.preventDefault());
+        P1Cells[i].addEventListener('dragenter', e => e.preventDefault());
+        P1Cells[i].addEventListener('drop', (e) => {
+            e.preventDefault();
+            let shipIdent = e.dataTransfer.getData('text/plain');
+            let cellIdent = e.target.classList[1].slice(3);
+            let coords = getCoord(cellIdent);
+            let cellX = coords[0];
+            let cellY = coords[1];
+            if(canIPutItHere(shipIdent, cellIdent, P1)) {
+                P1.gameboard.placeShip(shipIdent, cellX, cellY);
+                render('P1');
+            }
+        });
+
         P2Cells[i].addEventListener('click', clickedCell);
         P2Cells[i].classList.add('P2-'+i);
     }
@@ -147,7 +173,44 @@ let Loop = (function () {
         dragBoats.style.display = 'none';
         boardNotClickable = false;
     })
+
     
+    //Function to check availability of nearby spaces when placing a ship
+    function canIPutItHere(shipIdent, cellIndex, player) {
+        console.log(cellIndex);
+        let length;
+        if(shipIdent == 'C') {length = 5};
+        if(shipIdent == 'B') {length = 4};
+        if(shipIdent == 'D' || shipIdent == 'S') {length = 3};
+        if(shipIdent == 'P') {length = 2};
+        let tempIndex = +cellIndex;
+        let generalState = true;
+        //check that I'm not placing a ship over another one
+        for(let i=0; i<length; i++) {
+            if(player.gameboard.board[tempIndex] != '') {
+                generalState = false;
+                break;
+            }
+            tempIndex++;
+        }
+        //check if the ship is already in the board 
+        for(let elem of player.gameboard.board) {
+            if(elem[0] == shipIdent) {
+                generalState = false;
+                break;
+            }
+        }
+        //check if the ship touches the border of the board
+        let wallLimit = cellIndex[1] || cellIndex[0];
+        if(+wallLimit + length > 10) {
+            generalState = false;
+        }
+        //check if the ships are touching
+        let startPosition = +cellIndex;
+        let endPosition = startPosition+length;
+        
+        return generalState;
+    }
 
     //Winner function
     function winner(player) {
@@ -162,6 +225,20 @@ let Loop = (function () {
         }
     }
 
+    //Function to get coords from class number
+    function getCoord(str) {
+        let cellX;
+        let cellY;
+        if(str.length == 1) {
+            cellX = str[0];
+            cellY = 0;
+        } else {
+            cellX = str[1];
+            cellY = str[0];
+        }
+        return [cellX, cellY];
+    }
+
     ///Event function on cell click
     function clickedCell(e) {
         if(boardNotClickable) {return;};
@@ -174,15 +251,9 @@ let Loop = (function () {
         //If the player clicks its own board, nothing happens
         if(players[0].name == playerIdent) {return;}
 
-        let cellX;
-        let cellY;
-        if(cellIdent.length == 1) {
-            cellX = cellIdent[0];
-            cellY = 0;
-        } else {
-            cellX = cellIdent[1];
-            cellY = cellIdent[0];
-        }
+        let coords = getCoord(cellIdent);
+        let cellX = coords[0];
+        let cellY = coords[1];
 
         //If the clicked cell has been Hit or Missed before, do nothing
         let testIndex = +[cellY,cellX].join('');
