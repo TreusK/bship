@@ -18,6 +18,7 @@ header {
 }
 
 #P1 div {
+    text-align: center;
     border: solid 1px black;
 }
 
@@ -30,6 +31,7 @@ header {
 }
 
 #P2 div {
+    text-align: center;
     border: solid 1px black;
 }
 

@@ -12,7 +12,7 @@ for(let elem of boats) {
     })
 }
 
-
+///////////////////////////////////////////////////////////////////////////////////////////////////
 //Factory to construct ship objects based on their length
 function Ship(len) {
     let arr = [];
@@ -35,7 +35,7 @@ function Ship(len) {
 }
 
 
-
+///////////////////////////////////////////////////////////////////////////////////////////////////
 //Factory for the gameboards
 function Gameboard() {
     let board = [];
@@ -98,6 +98,16 @@ function Gameboard() {
         placeInCoord(ship, identifier, x, y); 
     }
 
+    //Function to check if all the ships are in the board
+    function areAllShipsPlaced() {
+        let s1 = board.includes('C0');
+        let s2 = board.includes('B0');
+        let s3 = board.includes('D0');
+        let s4 = board.includes('S0');
+        let s5 = board.includes('P0');
+        return(s1 && s2 && s3 && s4 && s5);
+    }
+
     //Function to check if all our ships have been sunk
     function areAllShipsSunk() {
         let s1 = carrier.isNotSunk();
@@ -109,11 +119,11 @@ function Gameboard() {
         return /*(!s1 && !s2 && !s3 && !s4 && */(!s5);
     }
 
-    return {board, shipsObj, placeShip, receiveAttack, areAllShipsSunk};
+    return {board, shipsObj, placeShip, receiveAttack, areAllShipsSunk, areAllShipsPlaced};
 }
 
 
-
+///////////////////////////////////////////////////////////////////////////////////////////////////
 //Factory for players
 function Player(name) {
     let gameboard = Gameboard();
@@ -135,6 +145,7 @@ P1.publicName = tempVar;
 P2.publicName = 'CPU';
 
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
 //Module for DOM manipulation and lotsa stuff
 let Loop = (function () {
     let turn = true;
@@ -158,7 +169,7 @@ let Loop = (function () {
             let coords = getCoord(cellIdent);
             let cellX = coords[0];
             let cellY = coords[1];
-            if(canIPutItHere(shipIdent, cellIdent, P1)) {
+            if(canIPutItHere(shipIdent, cellIdent, P1, cellX, cellY)) {
                 P1.gameboard.placeShip(shipIdent, cellX, cellY);
                 render('P1');
             }
@@ -169,15 +180,16 @@ let Loop = (function () {
     }
     //Start button event
     startBtn.addEventListener('click', function() {
-        P2Board.style.display = 'grid';
-        dragBoats.style.display = 'none';
-        boardNotClickable = false;
+        if(P1.gameboard.areAllShipsPlaced()) {
+            P2Board.style.display = 'grid';
+            dragBoats.style.display = 'none';
+            boardNotClickable = false;
+        }
     })
 
     
     //Function to check availability of nearby spaces when placing a ship
-    function canIPutItHere(shipIdent, cellIndex, player) {
-        console.log(cellIndex);
+    function canIPutItHere(shipIdent, cellIndex, player, cellX, cellY) {
         let length;
         if(shipIdent == 'C') {length = 5};
         if(shipIdent == 'B') {length = 4};
@@ -201,15 +213,85 @@ let Loop = (function () {
             }
         }
         //check if the ship touches the border of the board
-        let wallLimit = cellIndex[1] || cellIndex[0];
-        if(+wallLimit + length > 10) {
+        if(+cellX + length > 10) {
             generalState = false;
         }
         //check if the ships are touching
-        let startPosition = +cellIndex;
-        let endPosition = startPosition+length;
+        if(generalState) {
+            generalState = checkSurroundingCells(cellIndex, length, player, cellX, cellY);
+        }
         
         return generalState;
+    }
+
+    //Helper function to check surrounding cells when placing a ship
+    function checkSurroundingCells(cellIndex, len, player, x, y) {
+        let surroundingCellsState = true;
+        let index = +cellIndex;
+
+        let left = index-1;
+        let right = index+len;
+        let topStart = left-10;
+        let topEnd = right-10;
+        let bottomStart = left+10;
+        let bottomEnd = right+10;
+        
+        //if the ship is touching a wall, the side checks are different
+        if(x == '0') {
+            left = right;
+            if(y == '0') {
+                bottomStart = index+10;
+                topStart = bottomStart;
+                topEnd = bottomEnd;
+            } else if (y == '9') {
+                topStart = index-10;
+                bottomStart = topStart;
+                bottomEnd = topEnd;
+            } else {
+                topStart = topStart+1;
+                bottomStart = bottomStart+1;
+            }
+        } else if(+x + len == 10) {
+            right = left;
+            if(y == '0') {
+                topStart = bottomStart;
+                bottomEnd = bottomEnd-1;
+                topEnd = bottomEnd;
+            } else if (y == '9') {
+                bottomStart = topStart;
+                topEnd = topEnd-1;
+                bottomEnd = topEnd;
+            } else {
+                topEnd = topEnd-1;
+                bottomEnd = bottomEnd-1;
+            }
+        } else if(y == '0') {
+            topStart = bottomStart;
+            topEnd = bottomEnd;
+        } else if(y == '9') {
+            bottomStart = topStart;
+            bottomEnd = topEnd;
+        }
+
+        //top check
+        for(let i=topStart; i<=topEnd; i++) {
+            if(player.gameboard.board[i] != '') {
+                surroundingCellsState = false;
+                break;
+            }
+        }
+        //bottom check
+        for(let i=bottomStart; i<=bottomEnd; i++) {
+            if(player.gameboard.board[i] != '') {
+                surroundingCellsState = false;
+                break;
+            }
+        }
+        //sides check
+        if(player.gameboard.board[left] != '' || player.gameboard.board[right] != '') {
+            surroundingCellsState = false;
+        }
+        return surroundingCellsState;
     }
 
     //Winner function
@@ -221,7 +303,8 @@ let Loop = (function () {
     //Check for a winner every turn
     function checkWinner(player, enemy) {
         if(enemy.gameboard.areAllShipsSunk()) {
-            winner(player)
+            winner(player);
+            boardNotClickable = true;
         }
     }
 
@@ -231,7 +314,7 @@ let Loop = (function () {
         let cellY;
         if(str.length == 1) {
             cellX = str[0];
-            cellY = 0;
+            cellY = '0';
         } else {
             cellX = str[1];
             cellY = str[0];
@@ -277,7 +360,13 @@ let Loop = (function () {
     function render(playerString) {
         if(playerString == 'P1') {
             for(let i=0; i<100; i++) {
-                 P1Cells[i].innerHTML = P1.gameboard.board[i];
+                if(P1.gameboard.board[i] == 'h') {
+                    P1Cells[i].innerHTML = 'X';
+                } else if(P1.gameboard.board[i] == 'm') {
+                    P1Cells[i].innerHTML = '0';
+                } else if(P1.gameboard.board[i] != '') {
+                    P1Cells[i].style.backgroundColor = 'grey';
+                }
             }
         } else if(playerString == 'P2') {
             for(let i=0; i<100; i++) {
@@ -289,20 +378,26 @@ let Loop = (function () {
     return {render}
 })();
 
+////Computer functions
+//Function to place ships at random in P2s board
+function randomPlaceShips() {
+    let randomCell = Math.floor(Math.random() * 99);
+    
+}
+
+
 
 Loop.render(P1.name);
 Loop.render(P2.name);
 
-//Use "transform: rotate(90deg);" to turn, and "transform: rotate(0deg);" to reset the boards
+//Use "transform: rotate(90deg);" to turn, and "transform: rotate(0deg);" to reset the boards, 
+//que se caguen las naves individuales va a ser todo horizontal o vertical al carajo hervido
 
 
 ////Checkpoints
-///Posicionar las naves de p1 a mano
-///Idem las de p2, pero random
-///No dejar q dos naves se toquen al posicionarlas
-///No dejar q toquen el borde del board al posicionarlas
+///place p2 ships, pero random
 ///Como se representa el contenido del board en el html (h, m, vacio, ship)
-///Checkear q las naves no se repitan en el board al posicionarlas
+
 
 
 ///Remove temp win test of just patrol boat
